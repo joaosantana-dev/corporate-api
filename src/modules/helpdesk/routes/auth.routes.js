@@ -3,7 +3,8 @@ const bcrypt  = require('bcryptjs')
 const jwt     = require('jsonwebtoken')
 const crypto  = require('crypto')
 const rateLimit = require('express-rate-limit')
-const queries = require('../queries/auth.queries')
+const queries     = require('../queries/auth.queries')
+const userQueries = require('../queries/users.queries')
 const { httpError } = require('../../../middleware/errorHandler')
 const { authenticate } = require('../../../middleware/auth')
 
@@ -29,6 +30,25 @@ function refreshExpiry() {
   d.setDate(d.getDate() + days)
   return d
 }
+
+// POST /api/helpdesk/auth/register
+router.post('/register', async (req, res, next) => {
+  try {
+    const { name, email, password, department } = req.body
+    if (!name || !email || !password || !department)
+      throw httpError(400, 'Todos os campos são obrigatórios')
+    if (password.length < 6)
+      throw httpError(400, 'A senha deve ter no mínimo 6 caracteres')
+
+    const existing = await userQueries.findByEmail(email)
+    if (existing) throw httpError(409, 'E-mail já cadastrado')
+
+    const password_hash = await bcrypt.hash(password, 10)
+    const user = await userQueries.create({ name, email, password_hash, role: 'usuario', department })
+
+    res.status(201).json(user)
+  } catch (err) { next(err) }
+})
 
 // POST /api/helpdesk/auth/login
 router.post('/login', loginLimiter, async (req, res, next) => {
