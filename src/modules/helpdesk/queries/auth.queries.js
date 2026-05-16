@@ -48,10 +48,43 @@ async function deleteAllUserTokens(userId) {
   return db(TABLE_TOKENS).where({ user_id: userId }).delete()
 }
 
+// ── Password reset ────────────────────────────────────────────────────────────
+
+async function createPasswordReset(email, token, expiresAt) {
+  await db('helpdesk_password_resets').where({ email }).whereNull('used_at').delete()
+  await db('helpdesk_password_resets').insert({
+    email,
+    token_hash: hashToken(token),
+    expires_at: expiresAt,
+  })
+}
+
+async function findPasswordReset(token) {
+  return db('helpdesk_password_resets')
+    .where({ token_hash: hashToken(token) })
+    .whereNull('used_at')
+    .where('expires_at', '>', new Date())
+    .first()
+}
+
+async function consumePasswordReset(token) {
+  return db('helpdesk_password_resets')
+    .where({ token_hash: hashToken(token) })
+    .update({ used_at: new Date() })
+}
+
+async function updatePassword(email, passwordHash) {
+  return db(TABLE_USERS).where({ email }).update({ password_hash: passwordHash })
+}
+
 module.exports = {
   findByEmail,
   saveRefreshToken,
   findRefreshToken,
   deleteRefreshToken,
   deleteAllUserTokens,
+  createPasswordReset,
+  findPasswordReset,
+  consumePasswordReset,
+  updatePassword,
 }

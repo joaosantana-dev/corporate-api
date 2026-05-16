@@ -32,4 +32,18 @@ router.get('/by-technician', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// GET /api/helpdesk/reports/weekly
+router.get('/weekly', async (req, res, next) => {
+  try {
+    res.json(await queries.weekly())
+  } catch (err) { next(err) }
+})
+
+// GET /api/helpdesk/reports/monthly
+router.get('/monthly', async (req, res, next) => {
+  try {
+    res.json(await queries.monthly())
+  } catch (err) { next(err) }
+})
+
 module.exports = router

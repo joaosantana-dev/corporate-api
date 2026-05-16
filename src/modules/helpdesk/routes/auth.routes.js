@@ -95,6 +95,44 @@ router.post('/refresh', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// POST /api/helpdesk/auth/forgot-password
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body
+    if (!email) throw httpError(400, 'E-mail é obrigatório')
+
+    const user = await queries.findByEmail(email)
+    if (!user) return res.json({ message: 'Se o e-mail existir, você receberá as instruções.' })
+
+    const token   = crypto.randomBytes(32).toString('hex')
+    const expires = new Date(Date.now() + 60 * 60 * 1000) // 1h
+    await queries.createPasswordReset(email, token, expires)
+
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/trocar-senha?token=${token}`
+    console.log(`[reset-password] link para ${email}: ${resetUrl}`)
+
+    res.json({ message: 'Se o e-mail existir, você receberá as instruções.' })
+  } catch (err) { next(err) }
+})
+
+// POST /api/helpdesk/auth/reset-password
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { token, password } = req.body
+    if (!token || !password) throw httpError(400, 'Token e senha são obrigatórios')
+    if (password.length < 6) throw httpError(400, 'A senha deve ter no mínimo 6 caracteres')
+
+    const record = await queries.findPasswordReset(token)
+    if (!record) throw httpError(400, 'Token inválido ou expirado')
+
+    const hash = await bcrypt.hash(password, 10)
+    await queries.updatePassword(record.email, hash)
+    await queries.consumePasswordReset(token)
+
+    res.json({ message: 'Senha alterada com sucesso.' })
+  } catch (err) { next(err) }
+})
+
 // POST /api/helpdesk/auth/logout
 router.post('/logout', authenticate, async (req, res, next) => {
   try {

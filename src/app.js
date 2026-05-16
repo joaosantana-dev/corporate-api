@@ -6,8 +6,6 @@ const helmet       = require('helmet')
 const { errorHandler } = require('./middleware/errorHandler')
 
 const helpdeskRoutes = require('./modules/helpdesk')
-// futuramente: const system2Routes = require('./modules/system2')
-// futuramente: const system3Routes = require('./modules/system3')
 
 const app = express()
 
@@ -39,8 +37,6 @@ app.get('/health', (_req, res) => {
 
 // ── Módulos ────────────────────────────────────────────────────────────────
 app.use('/api/helpdesk', helpdeskRoutes)
-// app.use('/api/system2', system2Routes)
-// app.use('/api/system3', system3Routes)
 
 // ── Rota não encontrada ────────────────────────────────────────────────────
 app.use((_req, res) => {
