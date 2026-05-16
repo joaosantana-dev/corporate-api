@@ -12,10 +12,23 @@ const helpdeskRoutes = require('./modules/helpdesk')
 const app = express()
 
 // ── Segurança e parsing ────────────────────────────────────────────────────
-app.use(helmet())
+const isDev = (process.env.NODE_ENV || 'development') === 'development'
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, cb) => {
+    // Em desenvolvimento: aceita qualquer localhost (qualquer porta) e requests sem origin (curl/Postman)
+    if (isDev) {
+      if (!origin || /^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true)
+    }
+    // Em produção: só aceita a origin configurada
+    const allowed = process.env.CORS_ORIGIN || 'http://localhost:5173'
+    if (!origin || origin === allowed) return cb(null, true)
+    cb(new Error(`CORS: origem não permitida → ${origin}`))
+  },
   credentials: true,
+}))
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }))
 app.use(express.json())
 
